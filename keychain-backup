@@ -1,6 +1,8 @@
 #! /usr/bin/env bash
 
 [ -z $1 ] && VOLUME="KEYCHAINS" || VOLUME="$1"
+shift 1
+[ -z $1 ] && VOLUME_DIR="/Volumes" || VOLUMES_DIR="$1"
 
 set -eo pipefail
 
@@ -11,14 +13,14 @@ if [ ! -d ~/.keychains ]; then
     exit 0
 fi
 
-if [ ! -d /Volumes/${VOLUME} ]; then
+if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
     echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
     exit 1
 fi
 
 echo "Backing up keychains.."
 
-rm -f /Volumes/${VOLUME}/keychain.tar.bz
-tar -cvjf /Volumes/${VOLUME}/keychains.tar.bz ~/.keychains
+rm -f ${VOLUMES_DIR}/${VOLUME}/keychain.tar.bz
+tar -cvjf ${VOLUMES_DIR}/${VOLUME}/keychains.tar.bz ~/.keychains
 
-echo -e "Done.\nEject your volume if it is an external storage device and keep it safely stored."
+echo -e "Done.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored."
