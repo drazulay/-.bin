@@ -1,0 +1,69 @@
+#! /usr/bin/env bash
+
+PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+export PATH
+
+[ -z $1 ] && VOLUME="CONFIG" || VOLUME="$1"
+shift 1
+[ -z $1 ] && VOLUMES_DIR="/Volumes" || VOLUMES_DIR="$1"
+
+set -eo pipefail
+
+declare -a FILES=(
+	"${HOME}/.bash_profile"
+	"${HOME}/.bashrc"
+	"${HOME}/.cargo/.crates.toml"
+	"${HOME}/.composer/auth.json"
+	"${HOME}/.composer/composer.json"
+	"${HOME}/.composer/composer.lock"
+	"${HOME}/.config"
+	"${HOME}/.gitconfig"
+	"${HOME}/.gitmodules"
+	"${HOME}/.pearrc"
+	"${HOME}/.profile"
+	"${HOME}/.vimrc"
+	"${HOME}/.yarnrc"
+	"${HOME}/.z"
+	"${HOME}/.zshenv"
+	"${HOME}/.zshfn"
+	"${HOME}/.zshplugin"
+	"${HOME}/.zshrc"
+	"${HOME}/.zshrc"
+	"${HOME}/.zshrc.local"
+	"${HOME}/.zshrc.pre"
+)
+
+SUDO=$(which sudo)
+RSYNC=$(which rsync)
+AWK=$(which awk)
+
+DATE="$(date +%d-%m-%Y)"
+VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}"
+
+sudo --reset-timestamp
+
+echo "Sudo privileges are required to run this command,"
+sudo mkdir -pv ${VOLUME_PATH}
+
+for PATH in "${FILES[@]}"; do
+	BACKUP_PATH="${PATH/${HOME}/${VOLUME_PATH}}"
+
+    if ([ ! -e ${PATH} ] || [ -L ${PATH} ] || [ -h ${PATH} ] || [ -S ${PATH} ]); then
+		continue
+	fi
+
+	if [ -d ${PATH} ]; then
+		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+		[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -av ${PATH} ${BACKUP_PATH}
+	fi
+
+	if [ -f ${PATH} ]; then
+		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+		[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
+		${SUDO} ${RSYNC} -av ${PATH} ${BACKUP_PATH}
+	fi
+
+done
+
+echo -e "\nDone.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored."
