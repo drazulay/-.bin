@@ -5,7 +5,7 @@
 set -eo pipefail
 
 if [ ! -d ~/.keychains ]; then
-    echo "You have no keychains. The hidden directory ~/.keychains will be created for you in your home directory but you must place your .keychain files into it yourself."
+    echo "You have no keychains. The hidden directory ~/.keychains will be created for you in your home directory but you must place .keychain files you wish to backup into it yourself."
     mkdir -p ~/.keychains
     chmod 0700 ~/.keychains
     exit 0
@@ -21,4 +21,4 @@ echo "Backing up keychains.."
 rm -f /Volumes/${VOLUME}/keychain.tar.bz
 tar -cvjf /Volumes/${VOLUME}/keychains.tar.bz ~/.keychains
 
-echo "Done. Eject your USB key and keep it safe."
+echo -e "Done.\nEject your volume if it is an external storage device and keep it safely stored."
