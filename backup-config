@@ -49,9 +49,17 @@ AWK=$(which awk)
 DATE="$(date +%d-%m-%Y)"
 VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}"
 
-sudo --reset-timestamp
+echo "Sudo privileges are required to run this command."
 
-echo "Sudo privileges are required to run this command,"
+sudo --reset-timestamp
+sudo --validate
+
+if [ $? -ne 0 ]; then
+    EXIT=$?
+    echo "Authentication failure, exiting.."
+    exit ${EXIT}
+fi
+
 sudo mkdir -pv ${VOLUME_PATH}
 
 for PATH in "${FILES[@]}"; do
@@ -64,13 +72,13 @@ for PATH in "${FILES[@]}"; do
 	if [ -d ${PATH} ]; then
 		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
-		${SUDO} ${RSYNC} -av ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -iam --progress --out-format="%f" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 	if [ -f ${PATH} ]; then
 		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
-		${SUDO} ${RSYNC} -av ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -ia --progress --out-format="%f" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 done
