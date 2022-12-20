@@ -7,11 +7,6 @@ export PATH
 shift 1
 [ -z $1 ] && VOLUMES_DIR="/Volumes" || VOLUMES_DIR="$1"
 
-if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
-    echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
-    exit 1
-fi
-
 set -eo pipefail
 
 declare -a FILES=(
@@ -38,9 +33,18 @@ declare -a FILES=(
 	"${HOME}/.zshrc.pre"
 )
 
+if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
+    echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
+    exit 1
+fi
+
 SUDO=$(which sudo)
 RSYNC=$(which rsync)
 AWK=$(which awk)
+
+[ -z "${SUDO}" ] && echo "The command sudo is required to be installed to run backup-config."
+[ -z "${RSYNC}" ] && echo "The command rsync is required to be installed to run backup-config."
+[ -z "${AWK}" ] && echo "The command awk is required to be installed to run backup-config."
 
 DATE="$(date +%d-%m-%Y)"
 VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}"
