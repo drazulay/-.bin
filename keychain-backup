@@ -1,0 +1,20 @@
+#! /usr/bin/env bash
+
+if [ ! -d ~/.keychains ]; then
+    echo "You have no keychains. The directory ~/.keychains will be created but you must place your keychains in it yourself."
+    mkdir -p ~/.keychains
+    chmod 0700 ~/.keychains
+    exit 0
+fi
+
+if [ ! -d /Volumes/KEYCHAINS ]; then
+    echo "Volume KEYCHAINS is not mounted. Please mount a device named KEYCHAINS and try again."
+    exit 1
+fi
+
+echo "Backing up keychains.."
+
+rm -f /Volumes/KEYCHAINS/keychain.tar.bz
+tar -cvjf /Volumes/KEYCHAINS/keychains.tar.bz ~/.keychains
+
+echo "Done. Eject your USB key and keep it safe."
