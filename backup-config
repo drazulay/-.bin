@@ -47,11 +47,10 @@ AWK=$(which awk)
 [ -z "${AWK}" ] && echo "The command awk is required to be installed to run backup-config."
 
 DATE="$(date +%d-%m-%Y)"
-VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}"
+VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}${HOME}/${DATE}"
 
 echo "Sudo privileges are required to run this command."
 
-sudo --reset-timestamp
 sudo --validate
 
 if [ $? -ne 0 ]; then
@@ -59,6 +58,8 @@ if [ $? -ne 0 ]; then
     echo "Authentication failure, exiting.."
     exit ${EXIT}
 fi
+
+echo -e "\nStarting backup..\n"
 
 sudo mkdir -pv ${VOLUME_PATH}
 
@@ -72,13 +73,13 @@ for PATH in "${FILES[@]}"; do
 	if [ -d ${PATH} ]; then
 		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
-		${SUDO} ${RSYNC} -iam --progress --out-format="%f" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -iam --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 	if [ -f ${PATH} ]; then
 		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
-		${SUDO} ${RSYNC} -ia --progress --out-format="%f" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -ia --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}/" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 done
