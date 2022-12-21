@@ -44,13 +44,13 @@ fi
 
 FORMULA="shivammathur/php/php@${USE_VERSION}"
 
-echo "Checking if ${FORMULA} is installed.."
 if [ ${STATE} -eq 0 ]; then
+	echo "Checking if ${FORMULA} is installed.."
 	if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
 		echo "The Homebrew formula ${FORMULA} is not installed."
 		
 		# Maybe install the package?
-		read -p "Would you like to attempt to install ${FORMULA} from Homebrew? (N/y)" INSTALL
+		read -p "Would you like to attempt to install ${FORMULA} from Homebrew? (N/y) " INSTALL
 		if ([ "${INSTALL}" == "y" ] || [ "${INSTALL}" == "Y" ]); then
 			echo "Installing ${FORMULA} from Homebrew.."
 			brew install --quiet "${FORMULA}"
@@ -60,11 +60,12 @@ if [ ${STATE} -eq 0 ]; then
 		echo "Checking if ${FORMULA} installation succeeded.."
 		if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
 			echo "Could not install ${FORMULA}, exiting.."
-			set_version_state ${USE_VERSION} 1
+			set_version_state ${USE_VERSION} 0
 			exit 2
 		fi
 	fi
-	set_version_state ${USE_VERSION} 2
+
+	set_version_state ${USE_VERSION} 1
 else
 	echo "${FORMULA} is installed."
 fi
@@ -72,25 +73,25 @@ fi
 
 # Maybe link the package?
 echo "Checking Homebrew symlinks.."
-if [ ${STATE} -eq 2 ] || [ ! -e "${PHP}" ]; then
-	read -p "The binary ${PHP} was not found. Would you like to link the PHP binaries from ${FORMULA}? (N/y)" LINK
+if [ ${STATE} -le 1 ] || [ ! -e "${PHP}" ]; then
+	read -p "Required binary path ${PHP} not found. Would you like to link the PHP binaries from ${FORMULA}? (N/y) " LINK
 
 	if ([ "${LINK}" == "y" ] || [ "${LINK}" == "Y" ]); then
-		brew link --overwrite "${FORMULA}"
+		brew link --overwrite --force "${FORMULA}"
 
 		if [ ! -e "${PHP}" ]; then
 			echo "${PHP} still doesn't exist, which means we couldn't link the PHP binaries and cannot run PHP ${USE_VERSION}}, exiting.."
-			set_version_state ${USE_VERSION} 2
+			set_version_state ${USE_VERSION} 1
 			exit 3
 		fi
 	else
 		echo "Can't run the chosen PHP version without it being correctly symlinked. Exiting.."
-		set_version_state ${USE_VERSION} 2
+		set_version_state ${USE_VERSION} 1
 		exit 4
 	fi 
-	set_version_state ${USE_VERSION} 3
+
+	set_version_state ${USE_VERSION} 2
 fi
 
 echo ">> Running ${MAGERUN} with ${PHP}"
-
 ${PHP} -f "${MAGERUN}" "$@"
