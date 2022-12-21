@@ -1,3 +1,4 @@
-backup-config.conf
-.zcompdump
+*.log
 *.swp
+.zcompdump
+backup-config.conf
