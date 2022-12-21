@@ -9,29 +9,7 @@ shift 1
 
 set -eo pipefail
 
-declare -a FILES=(
-	"${HOME}/.bash_profile"
-	"${HOME}/.bashrc"
-	"${HOME}/.cargo/.crates.toml"
-	"${HOME}/.composer/auth.json"
-	"${HOME}/.composer/composer.json"
-	"${HOME}/.composer/composer.lock"
-	"${HOME}/.config"
-	"${HOME}/.gitconfig"
-	"${HOME}/.gitmodules"
-	"${HOME}/.pearrc"
-	"${HOME}/.profile"
-	"${HOME}/.vimrc"
-	"${HOME}/.yarnrc"
-	"${HOME}/.z"
-	"${HOME}/.zshenv"
-	"${HOME}/.zshfn"
-	"${HOME}/.zshplugin"
-	"${HOME}/.zshrc"
-	"${HOME}/.zshrc"
-	"${HOME}/.zshrc.local"
-	"${HOME}/.zshrc.pre"
-)
+CONFIG_FILE="$HOME/.bin/backup-config.conf"
 
 if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
     echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
@@ -47,7 +25,7 @@ AWK=$(which awk)
 [ -z "${AWK}" ] && echo "The command awk is required to be installed to run backup-config."
 
 DATE="$(date +%d-%m-%Y)"
-VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}${HOME}"
+VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}${HOME}/"
 
 echo "Sudo privileges are required to run this command."
 
@@ -63,8 +41,9 @@ echo -e "\nStarting backup..\n"
 
 sudo mkdir -pv ${VOLUME_PATH}
 
-for PATH in "${FILES[@]}"; do
-	BACKUP_PATH="${PATH/${HOME}/${VOLUME_PATH}}"
+while read -r PATH; do
+    BACKUP_PATH="${PATH/~\//${VOLUME_PATH}}"
+    PATH="${PATH/~\//${HOME}/}"
 
     if ([ ! -e ${PATH} ] || [ -L ${PATH} ] || [ -h ${PATH} ] || [ -S ${PATH} ]); then
 		continue
@@ -82,6 +61,6 @@ for PATH in "${FILES[@]}"; do
 		${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="%o (%l bytes) | %f --> ${PATH_DIR}/%n/" ${PATH} ${PATH_DIR}/
 	fi
 
-done
+done <$CONFIG_FILE
 
 echo -e "\nDone.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored."
