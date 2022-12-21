@@ -12,13 +12,9 @@ PHP=""
 USE_VERSION="8.1"
 LOCK_FILE="${HOME}/.bin/magerun2-php.lock"
 
-echo 0 | tee ${LOCK_FILE} 2>&1 > /dev/null
-
 STATE=$(cat ${LOCK_FILE})
 
 [ -z "${MAGERUN}" ] && echo "n98-magerun2: command not found." && exit 1
-
-[ ${STATE} -eq 1 ] || echo 1 | tee ${LOCK_FILE} 2>&1 > /dev/null
 
 declare -a VERSIONS=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
 
@@ -39,8 +35,8 @@ fi
 FORMULA="shivammathur/php/php@${USE_VERSION}"
 
 echo "Checking if ${FORMULA} is installed.."
-if [ ${STATE} -eq 1 ]; then
-	if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]]; then
+if [ ${STATE} -le 1 ]; then
+	if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
 		echo "The Homebrew formula ${FORMULA} is not installed."
 		
 		# Maybe install the package?
@@ -57,8 +53,8 @@ if [ ${STATE} -eq 1 ]; then
 			echo 1 | tee ${LOCK_FILE} 2>&1 > /dev/null
 			exit 2
 		fi
-		echo 2 | tee ${LOCK_FILE} 2>&1 > /dev/null
 	fi
+	echo 2 | tee ${LOCK_FILE} 2>&1 > /dev/null
 else
 	echo "${FORMULA} is installed."
 fi
