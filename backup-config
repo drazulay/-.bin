@@ -9,54 +9,69 @@ shift 1
 
 set -eo pipefail
 
-CONFIG_FILE="$HOME/.bin/backup-config.conf"
 
-if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
-    echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
-    exit 1
-fi
-
-SUDO=$(which sudo)
-RSYNC=$(which rsync)
+# Set initial variables
 AWK=$(which awk)
+CONFIG_FILE="$HOME/.bin/backup-config.conf"
+DATE="$(date +%d-%m-%Y)"
+PATH_ON_VOLUME="${VOLUMES_DIR}/${VOLUME}/${DATE}${HOME}/"
+RSYNC=$(which rsync)
+SUDO=$(which sudo)
 
+
+# Check if we have the required commands
 [ -z "${SUDO}" ] && echo "The command sudo is required to be installed to run backup-config."
 [ -z "${RSYNC}" ] && echo "The command rsync is required to be installed to run backup-config."
 [ -z "${AWK}" ] && echo "The command awk is required to be installed to run backup-config."
 
-DATE="$(date +%d-%m-%Y)"
-VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}${HOME}/"
 
-echo "Sudo privileges are required to run this command."
-
+# Check privileges
+echo "Super user privileges are required to run this command."
 sudo --validate
 
 if [ $? -ne 0 ]; then
-    EXIT=$?
-    echo "Authentication failure, exiting.."
-    exit ${EXIT}
+	EXIT=$?
+	echo "Authentication failure, exiting.."
+	exit ${EXIT}
 fi
 
-echo -e "\nStarting backup..\n"
+# Check if the volume is mounted
+if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
+	echo "Volume ${VOLUME} is not mounted. Please mount a volume named ${VOLUME} and try again."
+	exit 1
+fi
 
-sudo mkdir -pv ${VOLUME_PATH}
+
+# Execute backup
+echo -e "\nStarting backup..\n"
+sudo mkdir -pv ${PATH_ON_VOLUME}
 
 while read -r PATH; do
-    BACKUP_PATH="${PATH/~\//${VOLUME_PATH}}"
-    PATH="${PATH/~\//${HOME}/}"
 
-    if ([ ! -e ${PATH} ] || [ -L ${PATH} ] || [ -h ${PATH} ] || [ -S ${PATH} ]); then
+	TARGET_PATH="${PATH/~\//${PATH_ON_VOLUME}}"
+	PATH="${PATH/~\//${HOME}/}"
+
+	# Check if the file exists and is not a special file or socket
+	if ([ ! -e ${PATH} ] || [ -b ${PATH} ]|| [ -c ${PATH} ] || [ -S ${PATH} ]); then
 		continue
 	fi
 
+	# Copy directories recursively
 	if [ -d ${PATH} ]; then
-		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="%o (%l bytes) | %f --> ${PRE_DIR}/%n" --prune-empty-dirs ${PATH} ${PRE_DIR/}
+		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+		${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" --prune-empty-dirs ${PATH} ${DIR/}
 	fi
 
+	# Copy files
 	if [ -f ${PATH} ]; then
-		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="%o (%l bytes) | %f --> ${PATH_DIR}/%n/" ${PATH} ${PATH_DIR}/
+		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+		${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
+	fi
+
+	# Copy symlinks
+	if [ -h ${PATH} ]; then
+		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+		${SUDO} ${RSYNC} -ria --links --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
 	fi
 
 done <$CONFIG_FILE
