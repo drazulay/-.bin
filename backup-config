@@ -73,13 +73,13 @@ for PATH in "${FILES[@]}"; do
 	if [ -d ${PATH} ]; then
 		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
-		${SUDO} ${RSYNC} -iam --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -iam --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}/" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 	if [ -f ${PATH} ]; then
 		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
 		[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
-		${SUDO} ${RSYNC} -ia --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}/" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -ia --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
 	fi
 
 done
