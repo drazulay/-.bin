@@ -47,7 +47,7 @@ AWK=$(which awk)
 [ -z "${AWK}" ] && echo "The command awk is required to be installed to run backup-config."
 
 DATE="$(date +%d-%m-%Y)"
-VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}${HOME}/${DATE}"
+VOLUME_PATH="${VOLUMES_DIR}/${VOLUME}/${DATE}${HOME}"
 
 echo "Sudo privileges are required to run this command."
 
@@ -72,14 +72,14 @@ for PATH in "${FILES[@]}"; do
 
 	if [ -d ${PATH} ]; then
 		PRE_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
-		${SUDO} ${RSYNC} -iam --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		#[ ! -d ${BACKUP_PATH} ] && ${SUDO} /bin/mkdir -pv ${BACKUP_PATH}
+		${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="%o (%l bytes) | %f --> ${PRE_DIR}/%n" --prune-empty-dirs ${PATH} ${PRE_DIR/}
 	fi
 
 	if [ -f ${PATH} ]; then
 		PATH_DIR=$(echo "${BACKUP_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
-		${SUDO} ${RSYNC} -ia --sparse --update --perms --out-format="%o %l bytes | %f --> ${BACKUP_PATH}/" --prune-empty-dirs ${PATH} ${BACKUP_PATH}
+		#[ ! -d ${PATH_DIR} ] && ${SUDO} /bin/mkdir -pv ${PATH_DIR}
+		${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="%o (%l bytes) | %f --> ${PATH_DIR}/%n/" ${PATH} ${PATH_DIR}/
 	fi
 
 done
