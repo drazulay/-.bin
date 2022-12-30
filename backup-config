@@ -3,9 +3,56 @@
 PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 export PATH
 
-[ -z $1 ] && VOLUME="CONFIG" || VOLUME="$1"
-shift 1
-[ -z $1 ] && VOLUMES_DIR="/Volumes" || VOLUMES_DIR="$1"
+SCRIPT="$(basename ${0})t"
+
+ACTION_BACKUP="backup"
+ACTION_RESTORE="restore"
+
+ACTION=${ACTION_BACKUP}
+VOLUME="CONFIG"
+VOLUMES_DIR="/Volumes"
+
+show_help()
+{
+	echo "Usage:"
+	echo -e "\t${SCRIPT} [-h|--help] [-b|--backup] [-r|--restore] [-v|--volume] [-d|--volumes-dir]"
+	echo -e "\n\t[-h|--help]\t\tShow this help message"
+	echo -e "\n\t[-b|--backup]\t\tBackup mode (default)"
+	echo -e "\t[-r|--restore]\t\tRestore mode"
+	echo -e "\t[-v|--volume]\t\tVolume name (default is CONFIG)"
+	echo -e "\t[-d|--volumes-dir]\tVolume mount dir (default is /Volumes)\n"
+}
+
+# parse args
+SHIFT=1
+for ARG in "$@"; do
+	case $ARG in
+		-b|--backup)
+			echo -e "\nStarting backup..\n"
+			;;
+		-r|--restore)
+			echo -e "\nStarting backup..\n"
+			ACTION=${ACTION_RESTORE}
+			;;
+		-v|--volume)
+			[ ! -z "${2}" ] && SHIFT=2 && VOLUME="${2}"
+			;;
+		-d|--volumes-dir)
+			[ ! -z "${2}" ] && SHIFT=2 && VOLUMES_DIR="${2}"
+			;;
+		-h|--help)
+			show_help
+			exit 0;
+			;;
+		*|--*)
+			echo "Invalid argument."
+			show_help
+			exit 1;
+			;;
+	esac
+	shift ${SHIFT}
+	SHIFT=1
+done
 
 set -eo pipefail
 
@@ -42,38 +89,75 @@ if [ ! -d ${VOLUMES_DIR}/${VOLUME} ]; then
 fi
 
 
-# Execute backup
-echo -e "\nStarting backup..\n"
-sudo mkdir -pv ${PATH_ON_VOLUME}
+restore() {
+	# Execute restore
+	[ ! -d ${PATH_ON_VOLUME} ] && echo "Path to backup does not exist: ${PATH_ON_VOLUME}" && exit 1
 
-while read -r PATH; do
+	while read -r PATH; do
 
-	TARGET_PATH="${PATH/~\//${PATH_ON_VOLUME}}"
-	PATH="${PATH/~\//${HOME}/}"
+		TARGET_PATH="${PATH/~\//${PATH_ON_VOLUME}/}"
 
-	# Check if the file exists and is not a special file or socket
-	if ([ ! -e ${PATH} ] || [ -b ${PATH} ]|| [ -c ${PATH} ] || [ -S ${PATH} ]); then
-		continue
-	fi
+		# Check if the file exists and is not a special file or socket
+		if ([ ! -e ${PATH} ] || [ -b ${PATH} ]|| [ -c ${PATH} ] || [ -S ${PATH} ]); then
+			continue
+		fi
 
-	# Copy directories recursively
-	if [ -d ${PATH} ]; then
-		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" --prune-empty-dirs ${PATH} ${DIR/}
-	fi
+		# Copy directories recursively
+		if [ -d ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" --prune-empty-dirs ${PATH} ${DIR/}
+		fi
 
-	# Copy files
-	if [ -f ${PATH} ]; then
-		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
-	fi
+		# Copy files
+		if [ -f ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
+		fi
 
-	# Copy symlinks
-	if [ -h ${PATH} ]; then
-		DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
-		${SUDO} ${RSYNC} -ria --links --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
-	fi
+		# Copy symlinks
+		if [ -h ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -ria --links --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
+		fi
 
-done <$CONFIG_FILE
+	done <$CONFIG_FILE
 
-echo -e "\nDone.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored."
+	echo -e "\nDone.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored.";
+}
+
+backup() {
+	# Execute backup
+	sudo mkdir -pv ${PATH_ON_VOLUME}
+
+	while read -r PATH; do
+
+		TARGET_PATH="${PATH/~\//${PATH_ON_VOLUME}}"
+		PATH="${PATH/~\//${HOME}/}"
+
+		# Check if the file exists and is not a special file or socket
+		if ([ ! -e ${PATH} ] || [ -b ${PATH} ]|| [ -c ${PATH} ] || [ -S ${PATH} ]); then
+			continue
+		fi
+
+		# Copy directories recursively
+		if [ -d ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -riam --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" --prune-empty-dirs ${PATH} ${DIR/}
+		fi
+
+		# Copy files
+		if [ -f ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -ria --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
+		fi
+
+		# Copy symlinks
+		if [ -h ${PATH} ]; then
+			DIR=$(echo "${TARGET_PATH}" | ${AWK} 'BEGIN{FS=OFS="/"} {NF--} 1')
+			${SUDO} ${RSYNC} -ria --links --sparse --update --perms --out-format="[%t] %o %f --> ${DIR}/%n (%l bytes)" ${PATH} ${DIR}/
+		fi
+
+	done <$CONFIG_FILE
+
+	echo -e "\nDone.\nEject volume ${VOLUME} if it is an external storage device and keep it safely stored.";
+}
