@@ -44,7 +44,7 @@ if [ -z "${PHP}" ]; then
 	exit 1
 fi
 
-if [ ${STATE} -eq 0 ]; then
+if [[ -z ${STATE} || ${STATE} -eq 0 ]]; then
 	if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
 		echo "The Homebrew formula ${FORMULA} is not installed."
 		
