@@ -34,3 +34,17 @@ Short for 'version-php'. Runs any PHP script or phar executable with selected PH
 `vphp` takes two required arguments. The first argument is the PHP version to use, such as `8.1`. The second argument is the PHP script or phar executable to run.
 
 This script uses the `shivammathur/php` PHP packages from homebrew.
+
+Example:
+
+```
+daniel@dmbp ~ % vphp 8.1 n98-magerun2
+>> /usr/local/opt/php@8.1/bin/php -f /Users/daniel/.composer/vendor/bin/n98-magerun2
+
+     ___ ___                                       ___
+ _ _/ _ ( _ )___ _ __  __ _ __ _ ___ _ _ _  _ _ _ |_  )
+| ' \_, / _ \___| '  \/ _` / _` / -_) '_| || | ' \ / /
+|_||_/_/\___/   |_|_|_\__,_\__, \___|_|  \_,_|_||_/___|
+                           |___/
+n98-magerun2 6.1.0 (commit: 94a5580) by netz98 GmbH
+```
