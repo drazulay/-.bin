@@ -2,6 +2,9 @@
 
 Some handy scripts for in the `~/.bin` folder
 
+### To-Do
+- Currently compatible with OS X. In the future it would be nice to make the scripts linux compatible as well.
+
 ## `backup-keychains`
 
 Backs up keychain files stored in `~/.keychains` to a mounted volume.
@@ -24,6 +27,7 @@ The file `backup-config.conf` is a file where you simply list all the files and 
 
 ### To-Do
 - Use an argument parser instead of unstable positional arguments;
+- Add functionality to be able to restore backups;
 - Compress backups as tar.gz files.
 
 ## `vphp`
