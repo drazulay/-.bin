@@ -33,7 +33,7 @@ Short for 'version-php'. Runs any PHP script or phar executable with selected PH
 ### Arguments
 `vphp` takes two required arguments. The first argument is the PHP version to use, such as `8.1`. The second argument is the PHP script or phar executable to run.
 
-This script uses the `shivammathur/php` PHP packages from homebrew.
+This script uses the `shivammathur/php` PHP packages from homebrew. The script will ask if the user wants to install the specified php version, and whether to link it if the formula is not linked.
 
 Example:
 
