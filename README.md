@@ -25,3 +25,10 @@ The file `backup-config.conf` is a file where you simply list all the files and 
 ### To-Do
 - Use an argument parser instead of unstable positional arguments;
 - Compress backups as tar.gz files.
+
+## `vphp`
+
+Short for 'version-php'. Runs any PHP script or phar executable with selected PHP version.
+
+### Arguments
+`vphp` takes two optional arguments. The first argument is the PHP version to use, the default is `8.1`. The second argument is the path to the PHP script or phar executable.
