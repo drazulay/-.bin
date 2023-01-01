@@ -31,4 +31,4 @@ The file `backup-config.conf` is a file where you simply list all the files and 
 Short for 'version-php'. Runs any PHP script or phar executable with selected PHP version.
 
 ### Arguments
-`vphp` takes two optional arguments. The first argument is the PHP version to use, the default is `8.1`. The second argument is the path to the PHP script or phar executable.
+`vphp` takes two required arguments. The first argument is the PHP version to use, such as `8.1`. The second argument is the path to the PHP script or phar executable.
