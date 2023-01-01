@@ -1,0 +1,95 @@
+#! /usr/bin/env bash
+
+PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin:${HOME}/.composer/vendor/bin"
+export PATH
+
+set -e
+
+[ -z "${1}" ] && VERSION="8.1" || VERSION="${1}"
+shift
+[ -z "${1}" ] && ARGUMENT=0 || ARGUMENT="${1}"
+shift
+[ "${ARGUMENT}" == "0" ] && echo "Second argument must be a script or phar archive executable by PHP." && exit 1
+
+ARGUMENT=$(which ${ARGUMENT})
+LOCK_FILE="${HOME}/.bin/vphp.lock"
+
+# Usage: get_version_state <version>
+get_version_state () {
+	cat ${LOCK_FILE} | grep "${1}" | cut -d' ' -f2
+}
+
+# Usage: set_version_state <version> <state>
+set_version_state () {
+	cat ${LOCK_FILE} | awk "{ if (\$1!=${1}) { \$2=0; print \$0; } else { \$2=${2}; print \$0; } }" | tee ${LOCK_FILE} 2>&1 > /dev/null
+}
+
+declare -a VERSIONS=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1")
+
+# Check if the given version exists
+PHP=""
+USE_VERSION="8.1"
+for VER in "${VERSIONS[@]}"; do
+	if [ "${VER}" == "${VERSION}" ]; then
+		USE_VERSION="${VER}"
+		PHP="/usr/local/opt/php@${USE_VERSION}/bin/php"
+		STATE=$(get_version_state ${USE_VERSION})
+		break
+	fi
+done
+
+if [ -z "${PHP}" ]; then
+	echo "Invalid PHP version: ${VERSION}"
+	echo -e "Valid PHP versions: ${VERSIONS[@]}\nexiting.."
+	exit 1
+fi
+
+FORMULA="shivammathur/php/php@${USE_VERSION}"
+
+if [[ -z ${STATE} || ${STATE} -eq 0 ]]; then
+	if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
+		echo "The Homebrew formula ${FORMULA} is not installed."
+		
+		# Maybe install the package?
+		read -p "Would you like to attempt to install ${FORMULA} from Homebrew? (N/y) " INSTALL
+		if ([ "${INSTALL}" == "y" ] || [ "${INSTALL}" == "Y" ]); then
+			echo "Installing ${FORMULA} from Homebrew.."
+			brew install --quiet "${FORMULA}"
+		fi
+
+		# Install succeeded?
+		echo "Checking if ${FORMULA} installation succeeded.."
+		if [ $(brew info --quiet "${FORMULA}" | grep -c 'Not installed') -eq 1 ]; then
+			echo "Could not install ${FORMULA}, exiting.."
+			set_version_state ${USE_VERSION} 0
+			exit 2
+		fi
+	fi
+
+	set_version_state ${USE_VERSION} 1
+fi
+
+
+# Maybe link the package?
+if [ ${STATE} -le 1 ] || [ ! -e "${PHP}" ]; then
+	read -p "${FORMULA} binaries not linked. Would you like to link the PHP binaries from ${FORMULA}? (N/y) " LINK
+
+	if ([ "${LINK}" == "y" ] || [ "${LINK}" == "Y" ]); then
+		brew link --overwrite --force "${FORMULA}"
+
+		if [ ! -e "${PHP}" ]; then
+			echo "${PHP} still doesn't exist, which means we couldn't link the PHP binaries and cannot run PHP ${USE_VERSION}}, exiting.."
+			set_version_state ${USE_VERSION} 1
+			exit 3
+		fi
+	else
+		echo "Can't run the chosen PHP version without having the formula's binaries symlinked, exiting.."
+		set_version_state ${USE_VERSION} 1
+		exit 4
+	fi 
+
+	set_version_state ${USE_VERSION} 2
+fi
+
+echo ">> ${PHP} -f ${ARGUMENT} $@"
+${PHP} -f "${ARGUMENT}" "$@"
